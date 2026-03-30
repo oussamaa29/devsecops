@@ -1,0 +1,7 @@
+# Versions intentionnellement anciennes pour démontrer la détection de vulnérabilités par Trivy
+Flask==1.0.2
+Jinja2==2.10
+Werkzeug==0.15.3
+requests==2.18.4
+itsdangerous==0.24
+MarkupSafe==1.0
