@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 env:
   IMAGE_NAME: flask-api
   IMAGE_TAG: ${{ github.sha }}
