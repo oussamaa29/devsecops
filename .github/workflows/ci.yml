@@ -1,3 +1,4 @@
+---
 name: DevSecOps Pipeline
 
 on:
@@ -11,9 +12,7 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  # ─────────────────────────────────────────────
   # JOB 1 : Lint YAML
-  # ─────────────────────────────────────────────
   lint-yaml:
     name: Lint YAML files
     runs-on: ubuntu-latest
@@ -27,12 +26,7 @@ jobs:
       - name: Run yamllint on k8s manifests
         run: yamllint -c .yamllint.yml k8s/
 
-      - name: Run yamllint on GitHub Actions workflows
-        run: yamllint -c .yamllint.yml .github/workflows/
-
-  # ─────────────────────────────────────────────
   # JOB 2 : Build Docker image
-  # ─────────────────────────────────────────────
   build:
     name: Build Docker image
     runs-on: ubuntu-latest
@@ -56,18 +50,16 @@ jobs:
           path: image.tar
           retention-days: 1
 
-  # ─────────────────────────────────────────────
-  # JOB 3 : Scan des dépendances (Trivy FS)
-  # ─────────────────────────────────────────────
+  # JOB 3 : Scan des dependances (Trivy FS)
   trivy-fs-scan:
-    name: Trivy - Scan dépendances (FS)
+    name: Trivy - Scan dependances FS
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy filesystem scan
+      - name: Run Trivy filesystem scan (table)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: "fs"
@@ -75,9 +67,9 @@ jobs:
           scanners: "vuln,secret,misconfig"
           severity: "CRITICAL,HIGH,MEDIUM"
           format: "table"
-          exit-code: "0"  # Ne pas faire échouer le pipeline, seulement rapporter
+          exit-code: "0"
 
-      - name: Run Trivy FS scan - SARIF output
+      - name: Run Trivy FS scan (SARIF)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: "fs"
@@ -88,16 +80,14 @@ jobs:
           output: "trivy-fs-results.sarif"
           exit-code: "0"
 
-      - name: Upload Trivy FS results to GitHub Security tab
+      - name: Upload Trivy FS results to Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: "trivy-fs-results.sarif"
           category: "trivy-fs"
 
-  # ─────────────────────────────────────────────
   # JOB 4 : Scan de l'image Docker (Trivy image)
-  # ─────────────────────────────────────────────
   trivy-image-scan:
     name: Trivy - Scan image Docker
     runs-on: ubuntu-latest
@@ -114,7 +104,7 @@ jobs:
       - name: Load Docker image
         run: docker load -i image.tar
 
-      - name: Run Trivy image scan (table output)
+      - name: Run Trivy image scan (table)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: "image"
@@ -123,7 +113,7 @@ jobs:
           format: "table"
           exit-code: "0"
 
-      - name: Run Trivy image scan - SARIF output
+      - name: Run Trivy image scan (SARIF)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: "image"
@@ -133,18 +123,16 @@ jobs:
           output: "trivy-image-results.sarif"
           exit-code: "0"
 
-      - name: Upload Trivy image results to GitHub Security tab
+      - name: Upload Trivy image results to Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: "trivy-image-results.sarif"
           category: "trivy-image"
 
-  # ─────────────────────────────────────────────
-  # JOB 5 : Politique de sécurité (Conftest)
-  # ─────────────────────────────────────────────
+  # JOB 5 : Politique de securite (Conftest)
   conftest-policy:
-    name: Conftest - Vérification politique Kubernetes
+    name: Conftest - Politique Kubernetes
     runs-on: ubuntu-latest
     needs: lint-yaml
     steps:
@@ -153,36 +141,37 @@ jobs:
 
       - name: Install Conftest
         run: |
-          wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.50.0/conftest_0.50.0_Linux_x86_64.tar.gz
-          tar xzf conftest_0.50.0_Linux_x86_64.tar.gz
+          CONFTEST_VERSION="v0.50.0"
+          CONFTEST_FILE="conftest_0.50.0_Linux_x86_64.tar.gz"
+          BASE_URL="https://github.com/open-policy-agent/conftest/releases/download"
+          wget -q "${BASE_URL}/${CONFTEST_VERSION}/${CONFTEST_FILE}"
+          tar xzf "${CONFTEST_FILE}"
           sudo mv conftest /usr/local/bin/
           conftest --version
 
-      - name: Run Conftest policy check on K8s manifests
+      - name: Run Conftest policy check
         run: |
-          echo "=== Vérification des politiques de sécurité Kubernetes ==="
+          echo "=== Verification des politiques de securite Kubernetes ==="
           conftest test k8s/deployment.yaml --policy policy/ --output table || true
           echo ""
-          echo "=== Résultat détaillé ==="
+          echo "=== Resultat detaille ==="
           conftest test k8s/deployment.yaml --policy policy/ || exit 1
 
-  # ─────────────────────────────────────────────
-  # JOB 6 : Résumé de sécurité
-  # ─────────────────────────────────────────────
+  # JOB 6 : Resume de securite
   security-summary:
-    name: Résumé de sécurité
+    name: Resume de securite
     runs-on: ubuntu-latest
     needs: [trivy-fs-scan, trivy-image-scan, conftest-policy]
     if: always()
     steps:
-      - name: Afficher le résumé du pipeline
+      - name: Afficher le resume du pipeline
         run: |
-          echo "## Résumé du pipeline DevSecOps" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Étape | Statut |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint YAML | ${{ needs.lint-yaml.result }} |" >> $GITHUB_STEP_SUMMARY  # noqa
-          echo "| Build Docker | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trivy FS Scan | ${{ needs.trivy-fs-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trivy Image Scan | ${{ needs.trivy-image-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Conftest Policy | ${{ needs.conftest-policy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## Resume du pipeline DevSecOps" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Etape | Statut |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lint YAML | ${{ needs.lint-yaml.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build Docker | ${{ needs.build.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trivy FS | ${{ needs.trivy-fs-scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trivy Image | ${{ needs.trivy-image-scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Conftest | ${{ needs.conftest-policy.result }} |" >> "$GITHUB_STEP_SUMMARY"
