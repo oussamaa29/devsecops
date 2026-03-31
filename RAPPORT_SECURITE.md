@@ -1,6 +1,6 @@
 # Rapport Synthétique — Projet DevSecOps
 **Module :** 5DVSCOPS 2025/2026
-**Auteur :** [Votre nom]
+**Auteur :** Oussama Chaghil
 **Date :** Mars 2026
 
 ---
@@ -44,15 +44,26 @@ push/PR
 
 ### 3.1 Scan des dépendances Python (Trivy FS)
 
-Les dépendances suivantes ont été choisies volontairement en versions anciennes pour exposer des CVEs connues :
+Résultats réels obtenus par Trivy lors de l'exécution du pipeline (run #4) :
 
 | Package | Version | CVE | Sévérité | Description |
 |---------|---------|-----|----------|-------------|
-| Jinja2 | 2.10 | CVE-2019-10906 | HIGH | Sandbox escape via `_TemplateReference.__getattr__` |
-| Jinja2 | 2.10 | CVE-2019-8341 | HIGH | Injection de code via `jinja2.Environment` |
-| Werkzeug | 0.15.3 | CVE-2019-14806 | HIGH | Faiblesse dans la génération du PIN de débogage |
-| requests | 2.18.4 | CVE-2018-18074 | MEDIUM | Envoi d'en-têtes Authorization vers des redirections HTTP |
-| itsdangerous | 0.24 | CVE-2022-2068 | MEDIUM | Faiblesse dans la signature des tokens |
+| Jinja2 | 3.1.2 | CVE-2024-22195 | MEDIUM | HTML attribute injection via `xmlattr` filter |
+| Jinja2 | 3.1.2 | CVE-2024-34064 | MEDIUM | Accepts keys with non-attribute characters |
+| Jinja2 | 3.1.2 | CVE-2024-56201 | MEDIUM | Sandbox breakout via malicious filenames |
+| Jinja2 | 3.1.2 | CVE-2024-56326 | MEDIUM | Sandbox breakout via indirect reference to format method |
+| Jinja2 | 3.1.2 | CVE-2025-27516 | MEDIUM | Sandbox breakout via attr filter selecting format method |
+| Werkzeug | 2.2.3 | CVE-2024-34069 | HIGH | Remote code execution on developer machine via debugger |
+| Werkzeug | 2.2.3 | CVE-2023-46136 | MEDIUM | High resource consumption leading to denial of service |
+| Werkzeug | 2.2.3 | CVE-2024-49766 | MEDIUM | `safe_join()` not safe on Windows |
+| Werkzeug | 2.2.3 | CVE-2024-49767 | MEDIUM | Possible resource exhaustion when parsing file data in forms |
+| Werkzeug | 2.2.3 | CVE-2025-66221 | MEDIUM | Denial of service via Windows device names in path segments |
+| Werkzeug | 2.2.3 | CVE-2026-21860 | MEDIUM | `safe_join()` allows Windows special device names with compound extensions |
+| Werkzeug | 2.2.3 | CVE-2026-27199 | MEDIUM | `safe_join()` allows Windows special device names |
+| requests | 2.28.2 | CVE-2023-32681 | MEDIUM | Unintended leak of Proxy-Authorization header |
+| requests | 2.28.2 | CVE-2024-35195 | MEDIUM | Subsequent requests ignore certificate verification |
+| requests | 2.28.2 | CVE-2024-47081 | MEDIUM | Credentials leak via malicious URLs in `.netrc` |
+| requests | 2.28.2 | CVE-2026-25645 | MEDIUM | Security bypass via predictable temporary file creation |
 
 ### 3.2 Scan de l'image Docker (Trivy image)
 
