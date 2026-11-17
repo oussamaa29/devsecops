@@ -1,18 +1,27 @@
-# Image de base volontairement ancienne pour démontrer les CVEs détectées par Trivy
-FROM python:3.8-slim
+# Image de base récente, épinglée par digest (mise à jour par Dependabot)
+FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Copier les dépendances en premier (cache Docker)
+# Utilisateur dédié, sans shell ni privilèges
+RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
+
+# Dépendances d'abord, pour profiter du cache Docker
 COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copier le code source
 COPY app.py .
 
-# Exposer le port de l'application
+USER 10001
+
 EXPOSE 5000
 
-# Lancer l'application
-CMD ["python", "app.py"]
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')" || exit 1
+
+# Serveur WSGI de production à la place du serveur de développement de Flask
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--worker-tmp-dir", "/tmp", "app:app"]

@@ -46,3 +46,10 @@ def test_create_item_without_name_is_rejected(client):
 def test_create_item_without_json_body_is_rejected(client):
     resp = client.post("/items", data="pas du json", content_type="text/plain")
     assert resp.status_code in (400, 415)
+
+
+def test_create_item_when_store_is_empty(client):
+    app_module.items.clear()
+    resp = client.post("/items", json={"name": "premier"})
+    assert resp.status_code == 201
+    assert resp.get_json()["id"] == 1
