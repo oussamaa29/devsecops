@@ -38,7 +38,7 @@ def create_item():
     if not data or "name" not in data:
         return jsonify({"error": "Missing 'name' field"}), 400
     new_item = {
-        "id": max(i["id"] for i in items) + 1,
+        "id": max((i["id"] for i in items), default=0) + 1,
         "name": data["name"],
         "value": data.get("value", 0),
     }

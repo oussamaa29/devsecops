@@ -6,7 +6,7 @@ metadata:
   labels:
     app: flask-api
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: flask-api
@@ -15,14 +15,27 @@ spec:
       labels:
         app: flask-api
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: flask-api
-          image: flask-api:latest
+          image: flask-api:1.0.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
-          # MAUVAISE PRATIQUE : runAsUser 0 = root — détecté par Conftest
           securityContext:
-            runAsUser: 0
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           resources:
             limits:
               cpu: "500m"
@@ -30,6 +43,26 @@ spec:
             requests:
               cpu: "250m"
               memory: "64Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          volumeMounts:
+            # Racine en lecture seule : gunicorn a besoin d'un /tmp inscriptible
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi
 ---
 apiVersion: v1
 kind: Service
