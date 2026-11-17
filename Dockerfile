@@ -13,10 +13,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 
-# Dépendances d'abord, pour profiter du cache Docker
+# Dépendances d'abord, pour profiter du cache Docker. pip est ensuite retiré :
+# l'application n'en a pas besoin pour tourner, et il embarque son propre code tiers
+# (dont un extrait de setuptools 70.3.0 signalé par Trivy).
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip setuptools \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip uninstall -y setuptools pip
 
 COPY app.py .
 
