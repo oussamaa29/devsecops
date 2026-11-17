@@ -6,12 +6,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Utilisateur dédié, sans shell ni privilèges
-RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
+# Correctifs de sécurité Debian publiés après la construction de l'image de base,
+# puis utilisateur dédié, sans shell ni privilèges
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 
 # Dépendances d'abord, pour profiter du cache Docker
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip setuptools \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
